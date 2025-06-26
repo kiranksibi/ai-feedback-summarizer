@@ -10,13 +10,7 @@ AI Feedback Summarizer is a Streamlit web app that uses GPT-4 to analyze and sum
 - 🧠 Uses GPT-4 to group insights into 3–5 key themes
 - 💬 Includes real user quotes under each theme
 - ⚙️ Automatically handles large files via smart batching
-- 🔐 API key secured via `.env` file
 
----
-
-## 📸 Demo
-
-![screenshot](https://your-screenshot-url.com) <!-- (optional: replace with real image) -->
 
 ---
 
