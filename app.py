@@ -11,25 +11,54 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # ----------------------------
 # GPT Function: Summarize Feedback
 # ----------------------------
-def generate_insights(feedback_list):
-    prompt = (
-        "You are a product strategist. Analyze the following user feedback. "
-        "Group them into 3–5 key themes. For each theme, give a short summary and include 1–2 user quotes.\n\n"
-        "User feedback:\n"
-        + "\n".join(f"- {item}" for item in feedback_list)
+def generate_insights(feedback_list, batch_size=20):
+    # Helper to summarize a batch
+    def summarize_batch(batch):
+        prompt = (
+            "You are a product strategist. Analyze the following user feedback. "
+            "Group them into 3–5 key themes. For each theme, give a short summary and include 1–2 user quotes.\n\n"
+            "User feedback:\n" + "\n".join(f"- {item}" for item in batch)
+        )
+
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a helpful and concise product strategist."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.5,
+            max_tokens=1000
+        )
+
+        return response.choices[0].message.content
+
+    # Break into batches and summarize each
+    batches = [feedback_list[i:i+batch_size] for i in range(0, len(feedback_list), batch_size)]
+    batch_summaries = []
+
+    for idx, batch in enumerate(batches):
+        with st.spinner(f"Summarizing batch {idx + 1} of {len(batches)}..."):
+            summary = summarize_batch(batch)
+            batch_summaries.append(f"### Batch {idx+1}\n{summary}")
+
+    # Final summary of all summaries
+    final_prompt = (
+        "You're a product strategist. The following are summaries of customer feedback batches. "
+        "Please combine them into a single, concise insight summary with 3–5 key themes and 1–2 quotes per theme.\n\n"
+        + "\n\n".join(batch_summaries)
     )
 
-    response = client.chat.completions.create(
+    final_response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a helpful and concise product strategist."},
-            {"role": "user", "content": prompt}
+            {"role": "user", "content": final_prompt}
         ],
         temperature=0.5,
         max_tokens=1000
     )
 
-    return response.choices[0].message.content
+    return final_response.choices[0].message.content
 
 # ----------------------------
 # Streamlit App UI
