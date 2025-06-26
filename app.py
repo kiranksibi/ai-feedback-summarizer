@@ -9,11 +9,7 @@ from openai import OpenAI
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Optional: Allow entering key in sidebar
-st.sidebar.title("🔐 Settings")
-openai_key = st.sidebar.text_input("Enter OpenAI API Key", type="password")
-if openai_key:
-    openai.api_key = openai_key
+
 
 # Initialize client
 client = OpenAI()
