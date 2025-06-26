@@ -1,25 +1,21 @@
 import streamlit as st
 import pandas as pd
-import openai
+from openai import OpenAI
 import os
 from dotenv import load_dotenv
-from openai import OpenAI
 
-# Load API key from .env or sidebar
+# Load API key
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Optional: Allow entering key in sidebar
-#st.sidebar.title("🔐 Settings")
-#openai_key = st.sidebar.text_input("Enter OpenAI API Key", type="password")
-#if openai_key:
- #   openai.api_key = openai_key
-
-# Initialize client
-client = OpenAI()
+# Optional: Let user manually enter key (overrides .env if provided)
+st.sidebar.title("🔐 Settings")
+openai_key = st.sidebar.text_input("Enter OpenAI API Key", type="password")
+if openai_key:
+    client = OpenAI(api_key=openai_key)
 
 # ----------------------------
-# GPT Function
+# GPT Function: Summarize Feedback
 # ----------------------------
 def generate_insights(feedback_list):
     prompt = (
@@ -30,7 +26,7 @@ def generate_insights(feedback_list):
     )
 
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",  # Changed from gpt-4 to gpt-3.5-turbo
+        model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a helpful and concise product strategist."},
             {"role": "user", "content": prompt}
@@ -41,6 +37,7 @@ def generate_insights(feedback_list):
 
     return response.choices[0].message.content
 
+
 # ----------------------------
 # Streamlit App UI
 # ----------------------------
@@ -48,26 +45,23 @@ st.set_page_config(page_title="AI Feedback Summarizer", layout="wide")
 st.title("🧠 AI Feedback Summarizer")
 st.write("Upload customer feedback and get grouped insights using GPT.")
 
-# File upload
-uploaded_file = st.file_uploader("📄 Upload a CSV file (must include a 'feedback' column)", type="csv")
+# File uploader
+uploaded_file = st.file_uploader("📄 Upload a CSV file (should contain a 'feedback' or 'comments' column)", type="csv")
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
+    st.success("✅ File uploaded successfully!")
 
-    # Automatically find all text (object) columns
-    text_columns = df.select_dtypes(include='object').columns.tolist()
+    st.write("Here’s a preview of your data:")
+    st.dataframe(df.head())
 
-    if not text_columns:
-        st.error("⚠️ No text-based columns found in the CSV file.")
-    else:
-        selected_column = st.selectbox("📝 Choose the column with feedback/comments", text_columns)
-        st.success(f"✅ File uploaded successfully! Using '{selected_column}' column.")
-        st.write("Here’s a preview of your data:")
-        st.dataframe(df[[selected_column]].head())
+    # Let user select the text column
+    selected_column = st.selectbox("🔎 Choose the column with feedback/comments", df.columns)
 
+    if selected_column:
         # Generate GPT insights
         if st.button("🚀 Generate Insights"):
-            feedback_list = df['feedback'].dropna().tolist()
+            feedback_list = df[selected_column].dropna().tolist()
 
             with st.spinner("Analyzing feedback using GPT..."):
                 try:
