@@ -9,7 +9,11 @@ from openai import OpenAI
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-
+# Optional: Allow entering key in sidebar
+#st.sidebar.title("🔐 Settings")
+#openai_key = st.sidebar.text_input("Enter OpenAI API Key", type="password")
+#if openai_key:
+ #   openai.api_key = openai_key
 
 # Initialize client
 client = OpenAI()
@@ -50,12 +54,16 @@ uploaded_file = st.file_uploader("📄 Upload a CSV file (must include a 'feedba
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
 
-    if 'feedback' not in df.columns:
-        st.error("⚠️ Your CSV must contain a column named 'feedback'.")
+    # Automatically find all text (object) columns
+    text_columns = df.select_dtypes(include='object').columns.tolist()
+
+    if not text_columns:
+        st.error("⚠️ No text-based columns found in the CSV file.")
     else:
-        st.success("✅ File uploaded successfully!")
+        selected_column = st.selectbox("📝 Choose the column with feedback/comments", text_columns)
+        st.success(f"✅ File uploaded successfully! Using '{selected_column}' column.")
         st.write("Here’s a preview of your data:")
-        st.dataframe(df.head())
+        st.dataframe(df[[selected_column]].head())
 
         # Generate GPT insights
         if st.button("🚀 Generate Insights"):
